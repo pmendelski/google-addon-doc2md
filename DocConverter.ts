@@ -140,11 +140,11 @@ export class DocConverter {
       result.inClass = "end";
     } else {
 
-      prefix = findPrefix(inSrc, element, listCounters);
+      prefix = this.findPrefix(inSrc, element, listCounters);
 
       var pOut = "";
       for (var i=0; i<textElements.length; i++) {
-        pOut += processTextElement(inSrc, textElements[i]);
+        pOut += this.processTextElement(inSrc, textElements[i]);
       }
 
       // replace Unicode quotation marks
