@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <!-- The CSS package above applies Google styling to buttons and other elements. -->
+
+    <style>
+    .col-contain {
+      overflow: hidden;
+    }
+    .col-one {
+      float: left;
+      width: 50%;
+    }
+    .logo {
+      vertical-align: middle;
+    }
+    .radio-spacer {
+      height: 20px;
+    }
+    .width-100 {
+      width: 100%;
+    }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar branding-below">
+      <form>
+        <div class="block form-group">
+          <label for="translated-text"><b>Markdown</b></label>
+          <textarea class="width-100" id="markdown-text" rows="45"></textarea>
+        </div>
+        <div class="block" id="button-bar">
+          <button class="blue" id="run-conversion">Convert</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script>
+      $(function() {
+        $('#run-conversion').click(runConversion);
+        runConversion();
+      });
+      
+      function runConversion() {
+        this.disabled = true;
+        $('#error').remove();
+        $('#markdown-text').val('Converting to Markdown...');
+        google.script.run
+            .withSuccessHandler(
+              function(markdown, element) {
+                $('#markdown-text').val(markdown.content);
+                element.disabled = false;
+              })
+            .withFailureHandler(
+              function(msg, element) {
+                showError(msg, $('#button-bar'));
+                element.disabled = false;
+              })
+            .withUserObject(this)
+            .loadMarkdown();
+      }
+
+      function showError(msg, element) {
+        var div = $('<div id="error" class="error">' + msg + '</div>');
+        $(element).after(div);
+      }
+    </script>
+  </body>
+</html>
+
+

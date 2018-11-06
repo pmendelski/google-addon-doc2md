@@ -1,0 +1,10 @@
+{
+  "timeZone": "Europe/Warsaw",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/documents.currentonly",
+    "https://www.googleapis.com/auth/script.container.ui"
+  ],
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER"
+}

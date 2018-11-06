@@ -1,0 +1,16 @@
+{
+  "name": "doc2md",
+  "version": "1.0.0",
+  "description": "Google Doc Add-on that converts Doc content to Markdown",
+  "main": "Code.js",
+  "private": true,
+  "dependencies": {
+    "@types/google-apps-script": "0.0.31",
+    "typescript": "^3.1.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": ""
+}
