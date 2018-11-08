@@ -4,7 +4,9 @@
     "https://www.googleapis.com/auth/documents.currentonly",
     "https://www.googleapis.com/auth/script.container.ui"
   ],
-  "dependencies": {
+  "dependencies": {},
+  "icons": {
+    "128": "icons/icon128.png"
   },
   "exceptionLogging": "STACKDRIVER"
 }

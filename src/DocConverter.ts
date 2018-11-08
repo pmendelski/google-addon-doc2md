@@ -9,18 +9,13 @@ export class DocConverter {
     var text = "";
     var inSrc = false;
     var inClass = false;
-    var globalImageCounter = 0;
-    var globalListCounters = {};
-    // edbacher: added a variable for indent in src <pre> block. Let style sheet do margin.
+    var globalListCounters: { [name: string] : number } = {};
     var srcIndent = "";
-
-    var images = [];
 
     // Walk through all the child elements of the doc.
     for (var i = 0; i < numChildren; i++) {
       var child = document.getBody().getChild(i);
-      var result = this.processParagraph(i, child, inSrc, globalImageCounter, globalListCounters);
-      globalImageCounter += (result && result.images) ? result.images.length : 0;
+      var result = this.processParagraph(i, paragraph, inSrc, globalListCounters);
       if (result!==null) {
         if (result.sourcePretty==="start" && !inSrc) {
           inSrc=true;
@@ -43,7 +38,7 @@ export class DocConverter {
         } else if (inClass) {
           text+=result.text+"\n\n";
         } else if (inSrc) {
-          text+=(srcIndent+escapeHTML(result.text)+"\n");
+          text+= (srcIndent + this.escapeHTML(result.text) + "\n");
         } else if (result.text && result.text.length>0) {
           text+=result.text+"\n\n";
         }
@@ -63,7 +58,7 @@ export class DocConverter {
   }
 
   // Process each child element (not just paragraphs).
-  private processParagraph(index, element, inSrc, imageCounter, listCounters) {
+  private processParagraph(index: number, element: GoogleAppsScript.Document.Paragraph, inSrc: boolean, listCounters: { [name: string] : number } ) {
     // First, check for things that require no processing.
     if (element.getNumChildren()==0) {
       return null;
@@ -76,13 +71,13 @@ export class DocConverter {
     // Set up for real results.
     var result = {};
     var pOut = "";
-    var textElements = [];
-    var imagePrefix = "image_";
+    var textElements: string[] = [];
 
     // Handle Table elements. Pretty simple-minded now, but works for simple tables.
     // Note that Markdown does not process within block-level HTML, so it probably
     // doesn't make sense to add markup within tables.
     if (element.getType() === DocumentApp.ElementType.TABLE) {
+      var table = element.as
       textElements.push("<table>\n");
       var nCols = element.getChild(0).getNumCells();
       for (var i = 0; i < element.getNumChildren(); i++) {
@@ -103,7 +98,7 @@ export class DocConverter {
       if (t === DocumentApp.ElementType.TABLE_ROW) {
         // do nothing: already handled TABLE_ROW
       } else if (t === DocumentApp.ElementType.TEXT) {
-        var txt=element.getChild(i);
+        var txt = element.getChild(i);
         pOut += txt.getText();
         textElements.push(txt);
       } else if (t === DocumentApp.ElementType.INLINE_IMAGE) {
@@ -199,7 +194,7 @@ export class DocConverter {
     return prefix;
   }
 
-  private processTextElement(inSrc, txt): string {
+  private processTextElement(inSrc: boolean, txt): string {
     if (typeof(txt) === 'string') {
       return txt;
     }
@@ -235,10 +230,12 @@ export class DocConverter {
         }
       }
       if (txt.isBold(off)) {
-        var d1 = d2 = "**";
+        var d1 = "**";
+        var d2 = "**";
         if (txt.isItalic(off)) {
           // edbacher: changed this to handle bold italic properly.
-          d1 = "**_"; d2 = "_**";
+          d1 = "**_";
+          d2 = "_**";
         }
         pOut=pOut.substring(0, off)+d1+pOut.substring(off, lastOff)+d2+pOut.substring(lastOff);
       } else if (txt.isItalic(off)) {
