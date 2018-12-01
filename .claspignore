@@ -1,8 +1,9 @@
-node_modules/**
-.git/**
 .editorconfig
-package.json
-tsconfig.json
-jsconfig.json
+.git
 .gitignore
+jsconfig.json
+node_modules
+package.json
+package-lock.json
 readme.md
+tsconfig.json

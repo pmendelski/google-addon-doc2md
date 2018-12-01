@@ -2,8 +2,7 @@ import { DocConverter } from './DocConverter';
 
 export const onOpen = () => {
   DocumentApp.getUi().createAddonMenu()
-      .addItem('Convert in Modall', 'convertInModal')
-      .addItem('Convert in Sidebar', 'convertInSidebar')
+      .addItem('Convert Doc to Markdown', 'convertDoc2MdInSidebar')
       .addToUi();
 }
 
@@ -19,7 +18,7 @@ export const convertInModal = () => {
   DocumentApp.getUi().showModelessDialog(ui, 'Markdown');
 }
 
-export const convertInSidebar = () => {
+export const convertDoc2MdInSidebar = () => {
   const ui = HtmlService.createHtmlOutputFromFile('sidebar')
     .setTitle('Markdown');
   DocumentApp.getUi().showSidebar(ui);
