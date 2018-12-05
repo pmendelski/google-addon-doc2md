@@ -5,8 +5,5 @@
     "https://www.googleapis.com/auth/script.container.ui"
   ],
   "dependencies": {},
-  "icons": {
-    "128": "icons/icon128.png"
-  },
   "exceptionLogging": "STACKDRIVER"
 }

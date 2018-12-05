@@ -8,8 +8,13 @@
     "@types/google-apps-script": "0.0.31",
     "typescript": "^3.1.6"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "copyfiles": "^2.1.0"
+  },
   "scripts": {
+    "assets": "copyfiles src/**/*.json src/**/*.html dist",
+    "compile": "tsc",
+    "build": "npm run compile && npm run assets",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": ""

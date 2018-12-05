@@ -1,31 +1,22 @@
 import { DocConverter } from './DocConverter';
 
-export const onOpen = () => {
+function onOpen() {
   DocumentApp.getUi().createAddonMenu()
-      .addItem('Convert Doc to Markdown', 'convertDoc2MdInSidebar')
-      .addToUi();
+    .addItem('Convert Doc to Markdown', 'convertDoc2MdInSidebar')
+    .addToUi();
 }
 
-export const onInstall = () => {
+function onInstall() {
   onOpen();
 }
 
-export const convertInModal = () => {
-  const ui = HtmlService.createHtmlOutputFromFile('modal')
-    .setSandboxMode(HtmlService.SandboxMode.IFRAME)
-    .setWidth(800)
-    .setHeight(625);
-  DocumentApp.getUi().showModelessDialog(ui, 'Markdown');
-}
-
-export const convertDoc2MdInSidebar = () => {
+function convertDoc2MdInSidebar() {
   const ui = HtmlService.createHtmlOutputFromFile('sidebar')
-    .setTitle('Markdown');
+    .setTitle('Markdown - Doc2Md');
   DocumentApp.getUi().showSidebar(ui);
 }
 
-
-export const loadMarkdown = () => {
+function loadMarkdown() {
   return new DocConverter()
     .convertToMarkdown(DocumentApp.getActiveDocument());
 }
