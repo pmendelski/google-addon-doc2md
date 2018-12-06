@@ -6,19 +6,6 @@
     <!-- The CSS package above applies Google styling to buttons and other elements. -->
 
     <style>
-    .col-contain {
-      overflow: hidden;
-    }
-    .col-one {
-      float: left;
-      width: 50%;
-    }
-    .logo {
-      vertical-align: middle;
-    }
-    .radio-spacer {
-      height: 20px;
-    }
     .width-100 {
       width: 100%;
     }
@@ -34,6 +21,8 @@
         <div class="block" id="button-bar">
           <button class="blue" id="run-conversion">Convert</button>
         </div>
+        <div class="block" id="details">
+        </div>
       </form>
     </div>
 
@@ -46,17 +35,19 @@
 
       function runConversion() {
         this.disabled = true;
-        $('#error').remove();
+        $('#details').empty();
         $('#markdown-text').val('Converting to Markdown...');
         google.script.run
             .withSuccessHandler(
               function(result, element) {
                 $('#markdown-text').val(result.markdown);
+                showWarnings(result.warnings);
                 element.disabled = false;
               })
             .withFailureHandler(
               function(msg, element) {
-                showError(msg, $('#button-bar'));
+                $('#markdown-text').val('Error: ' + msg);
+                showError(msg);
                 element.disabled = false;
               })
             .withUserObject(this)
@@ -65,7 +56,14 @@
 
       function showError(msg, element) {
         var div = $('<div id="error" class="error">' + msg + '</div>');
-        $(element).after(div);
+        $('#details').append(div);
+      }
+
+      function showWarnings(warnings) {
+        if (!warnings || warnings.length <= 0) return;
+        var items = warnings.map(warning => `<li><span class="line">Line: ${warning.line}</span> ${warning.message}</li>`).join('')
+        var div = $('<div id="warnings" class="warnings"><div class="summary">Warnings: ' + warnings.length + '</div><ul>' + items + '</ul></div>');
+        $('#details').append(div);
       }
     </script>
   </body>
