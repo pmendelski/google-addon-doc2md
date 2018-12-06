@@ -3,12 +3,10 @@
   <head>
     <base target="_top">
     <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
-    <!-- The CSS package above applies Google styling to buttons and other elements. -->
-
     <style>
-    .width-100 {
-      width: 100%;
-    }
+      .width-100 {
+        width: 100%;
+      }
     </style>
   </head>
   <body>
@@ -62,7 +60,7 @@
       function showWarnings(warnings) {
         if (!warnings || warnings.length <= 0) return;
         var items = warnings.map(warning => `<li><span class="line">Line: ${warning.line}</span> ${warning.message}</li>`).join('')
-        var div = $('<div id="warnings" class="warnings"><div class="summary">Warnings: ' + warnings.length + '</div><ul>' + items + '</ul></div>');
+        var div = $('<div id="warnings" class="warnings"><div class="error">Warnings: ' + warnings.length + '</div><ul>' + items + '</ul></div>');
         $('#details').append(div);
       }
     </script>
