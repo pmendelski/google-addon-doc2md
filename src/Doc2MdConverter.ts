@@ -3,222 +3,190 @@ export interface DocConversionResult {
   markdown: string;
 }
 
-export class DocConverter {
-  public convertToMarkdown(document: GoogleAppsScript.Document.Document): DocConversionResult {
-    const listCounters: { [name: string] : number } = {};
-    let result = "";
+interface CompositeElement {
+  getType(): GoogleAppsScript.Document.ElementType;
+  getNumChildren(): number;
+  getChild(childIndex: number): GoogleAppsScript.Document.Element;
+}
+export class Doc2MdConverter {
+  private omittedElementTypes: GoogleAppsScript.Document.ElementType[] = [
+    DocumentApp.ElementType.TABLE_OF_CONTENTS,
+    DocumentApp.ElementType.HORIZONTAL_RULE,
+    DocumentApp.ElementType.INLINE_DRAWING,
+    DocumentApp.ElementType.UNSUPPORTED
+  ];
+  private listCounters: { [name: string] : number } = {};
 
-    for (let i = 0; i < document.getBody().getNumChildren(); i++) {
-      const child: GoogleAppsScript.Document.Element = document.getBody().getChild(i);
-      const childMarkdown: string = this.processElement(child, listCounters);
-      if (childMarkdown !== null && childMarkdown.length > 0) {
-        result += childMarkdown + "\n\n";
-      }
-    }
+  public convertToMarkdown(document: GoogleAppsScript.Document.Document): DocConversionResult {
+    this.listCounters = {};
+    const result = this.processCompositeElement(document.getBody());
     return {
       title: document.getName(),
       markdown: result
     };
   }
 
-  private processElement(element: GoogleAppsScript.Document.Element, listCounters: { [name: string] : number } ): string {
+  private processCompositeElement(element: CompositeElement): string {
+    if (this.omittedElementTypes.indexOf(element.getType()) >= 0) return '';
+    return [...Array(element.getNumChildren())]
+      .map((_, index) => element.getChild(index))
+      .map(child => this.processElement(child))
+      .filter(result => result.length > 0)
+      .join('\n')
+      .replace(/\n\n+/g, '\n\n')
+      .trim();
+  }
+
+  private processElement(element: GoogleAppsScript.Document.Element): string {
     const type: GoogleAppsScript.Document.ElementType = element.getType();
-    if (type == DocumentApp.ElementType.TABLE_OF_CONTENTS) {
-      element.asTableOfContents()
-    }
-  }
-
-  private processTableOfContents(element: GoogleAppsScript.Document.TableOfContents): string {
-    return {
-      text: "[[MD_TOC]]"
-    };
-  }
-
-  private processElement2(element: GoogleAppsScript.Document.Element, listCounters: { [name: string] : number } ): string {
-    // First, check for things that require no processing.
-    if (element.getNumChildren()==0) {
-      return null;
-    }
-    // Punt on TOC.
-    if (element.getType() === DocumentApp.ElementType.TABLE_OF_CONTENTS) {
-      return {"text": "[[TOC]]"};
-    }
-
-    // Set up for real results.
-    var result = {};
-    var pOut = "";
-    var textElements: string[] = [];
-
-    // Handle Table elements. Pretty simple-minded now, but works for simple tables.
-    // Note that Markdown does not process within block-level HTML, so it probably
-    // doesn't make sense to add markup within tables.
-    if (element.getType() === DocumentApp.ElementType.TABLE) {
-      var table = element.as
-      textElements.push("<table>\n");
-      var nCols = element.getChild(0).getNumCells();
-      for (var i = 0; i < element.getNumChildren(); i++) {
-        textElements.push("  <tr>\n");
-        // process this row
-        for (var j = 0; j < nCols; j++) {
-          textElements.push("    <td>" + element.getChild(i).getChild(j).getText() + "</td>\n");
-        }
-        textElements.push("  </tr>\n");
-      }
-      textElements.push("</table>\n");
-    }
-
-    // Process various types (ElementType).
-    for (var i = 0; i < element.getNumChildren(); i++) {
-      var t = element.getChild(i).getType();
-
-      if (t === DocumentApp.ElementType.TABLE_ROW) {
-        // do nothing: already handled TABLE_ROW
-      } else if (t === DocumentApp.ElementType.TEXT) {
-        var txt = element.getChild(i);
-        pOut += txt.getText();
-        textElements.push(txt);
-      } else if (t === DocumentApp.ElementType.INLINE_IMAGE) {
-        textElements.push('![INLINED_IMG](IMG_URL)');
-      } else if (t === DocumentApp.ElementType.PAGE_BREAK) {
-        // ignore
-      } else if (t === DocumentApp.ElementType.HORIZONTAL_RULE) {
-        textElements.push('* * *\n');
-      } else if (t === DocumentApp.ElementType.FOOTNOTE) {
-        textElements.push(' (NOTE: '+element.getChild(i).getFootnoteContents().getText()+')');
-      } else {
-        throw "Paragraph "+ index +" of type " + element.getType() + " has an unsupported child: "
-        + t + " "+(element.getChild(i)["getText"] ? element.getChild(i).getText():'')+" index="+index;
-      }
-    }
-
-    if (textElements.length==0) {
-      // Isn't result empty now?
-      return result;
-    }
-
-    // evb: Add source pretty too. (And abbreviations: src and srcp.)
-    // process source code block:
-    if (/^\s*---\s+srcp\s*$/.test(pOut) || /^\s*---\s+source pretty\s*$/.test(pOut)) {
-      result.sourcePretty = "start";
-    } else if (/^\s*---\s+src\s*$/.test(pOut) || /^\s*---\s+source code\s*$/.test(pOut)) {
-      result.source = "start";
-    } else if (/^\s*---\s+class\s+([^ ]+)\s*$/.test(pOut)) {
-      result.inClass = "start";
-      result.className = RegExp.$1;
-    } else if (/^\s*---\s*$/.test(pOut)) {
-      result.source = "end";
-      result.sourcePretty = "end";
-      result.inClass = "end";
+    if (this.omittedElementTypes.indexOf(type) >= 0) return '';
+    if (type == DocumentApp.ElementType.TABLE) {
+      return this.processTable(element.asTable());
+    } else if (type == DocumentApp.ElementType.PARAGRAPH) {
+      return this.processParagraph(element.asParagraph());
+    } else if (type == DocumentApp.ElementType.TEXT) {
+      return this.processText(element.asText());
+    } else if (type == DocumentApp.ElementType.LIST_ITEM) {
+      return this.processList(element.asListItem());
+    } else if (type == DocumentApp.ElementType.INLINE_IMAGE) {
+      return this.processImage();
     } else {
-
-      prefix = this.findPrefix(inSrc, element, listCounters);
-
-      var pOut = "";
-      for (var i=0; i<textElements.length; i++) {
-        pOut += this.processTextElement(inSrc, textElements[i]);
-      }
-
-      // replace Unicode quotation marks
-      pOut = pOut.replace('\u201d', '"').replace('\u201c', '"');
-
-      result.text = prefix+pOut;
+      return this.unrecognizedElement(element);
     }
+  }
 
+  private unrecognizedElement(child: GoogleAppsScript.Document.Element) {
+    return "(WARN_UNRECOGNIZED_ELEMENT: " + child.getType() + ")";
+  }
+
+  private processImage(): string {
+    return `![WARN_IMG]()`;
+  }
+
+  private processParagraph(paragraph: GoogleAppsScript.Document.Paragraph): string {
+    const prefix = this.processParagraphHeading(paragraph.getHeading());
+    const text = this.processCompositeElement(paragraph);
+    return text.length > 0 ? prefix + text : '\n';
+  }
+
+  private processList(list: GoogleAppsScript.Document.ListItem): string {
+    const prefix = this.processListPrefix(list);
+    const text = this.processText(list.editAsText());
+    return text.length > 0 ? prefix + text : '';
+  }
+
+  private processParagraphHeading(heading: GoogleAppsScript.Document.ParagraphHeading): string {
+    switch (heading) {
+      case DocumentApp.ParagraphHeading.HEADING6: return "###### ";
+      case DocumentApp.ParagraphHeading.HEADING5: return "##### ";
+      case DocumentApp.ParagraphHeading.HEADING4: return "#### ";
+      case DocumentApp.ParagraphHeading.HEADING3: return "### ";
+      case DocumentApp.ParagraphHeading.HEADING2: return "## ";
+      case DocumentApp.ParagraphHeading.HEADING1: return "# ";
+      case DocumentApp.ParagraphHeading.SUBTITLE: return "## ";
+      case DocumentApp.ParagraphHeading.TITLE: return "# ";
+      default: return "";
+    }
+  }
+
+  private processListPrefix(list: GoogleAppsScript.Document.ListItem): string {
+    const level = list.getNestingLevel();
+    const padding = [...Array(level)]
+      .map(() => ' ')
+      .join(' ');
+    var glyph = list.getGlyphType();
+    // Bullet list (<ul>):
+    if (glyph === DocumentApp.GlyphType.BULLET
+        || glyph === DocumentApp.GlyphType.HOLLOW_BULLET
+        || glyph === DocumentApp.GlyphType.SQUARE_BULLET) {
+      return padding + "* ";
+    } else {
+      // Ordered list (<ol>):
+      const key = list.getListId() + '.' + list.getNestingLevel();
+      const counter = this.listCounters[key] ? this.listCounters[key] + 1 : 1;
+      this.listCounters[key] = counter;
+      return padding + counter + ". ";
+    }
+  }
+
+  private processText2(text: GoogleAppsScript.Document.Text): string {
+    const indices = text.getTextAttributeIndices();
+    let result = "text:" + text.getText() + "\n";
+    let lastOffset = result.length;
+
+    for (let i = indices.length - 1; i >= 0; i--) {
+      let offset = indices[i];
+      let value = text.getText().substring(offset, lastOffset);
+      result += i + ": (" + offset + ", " + lastOffset + "): value: " + value + "\n";
+      lastOffset = offset;
+    }
     return result;
   }
 
-  // Add correct prefix to list items.
-  private findPrefix(inSrc, element, listCounters): string {
-    var prefix="";
-    if (!inSrc) {
-      if (element.getType()===DocumentApp.ElementType.PARAGRAPH) {
-        var paragraphObj = element;
-        switch (paragraphObj.getHeading()) {
-          // Add a # for each heading level. No break, so we accumulate the right number.
-          case DocumentApp.ParagraphHeading.HEADING6: prefix+="#";
-          case DocumentApp.ParagraphHeading.HEADING5: prefix+="#";
-          case DocumentApp.ParagraphHeading.HEADING4: prefix+="#";
-          case DocumentApp.ParagraphHeading.HEADING3: prefix+="#";
-          case DocumentApp.ParagraphHeading.HEADING2: prefix+="#";
-          case DocumentApp.ParagraphHeading.HEADING1:
-          case DocumentApp.ParagraphHeading.SUBTITLE:
-          case DocumentApp.ParagraphHeading.TITLE: prefix+="# ";
-          default:
+  private processText(text: GoogleAppsScript.Document.Text): string {
+    const indices = text.getTextAttributeIndices();
+    let result = text.getText();
+    let lastOffset = result.length;
+
+    for (let i = indices.length - 1; i >= 0; i--) {
+      let offset = indices[i];
+      let url = text.getLinkUrl(offset);
+      let font = text.getFontFamily(offset);
+      let value = result.substring(offset, lastOffset);
+      if (url) {
+        while (i >= 1 && indices[i-1] == offset-1 && text.getLinkUrl(indices[i-1]) === url) {
+          // detect links that are in multiple pieces because of errors on formatting:
+          i -= 1;
+          offset = indices[i];
         }
-      } else if (element.getType()===DocumentApp.ElementType.LIST_ITEM) {
-        var listItem = element;
-        var nesting = listItem.getNestingLevel()
-        for (var i=0; i<nesting; i++) {
-          prefix += "    ";
+        value = '[' + result.substring(offset, lastOffset) + '](' + url + ')';
+      } else if (font === 'COURIER_NEW') {
+        while (i >= 1 && text.getFontFamily(indices[i-1]) === 'COURIER_NEW') {
+          // detect fonts that are in multiple pieces because of errors on formatting:
+          i-=1;
+          offset = indices[i];
         }
-        var gt = listItem.getGlyphType();
-        // Bullet list (<ul>):
-        if (gt === DocumentApp.GlyphType.BULLET
-            || gt === DocumentApp.GlyphType.HOLLOW_BULLET
-            || gt === DocumentApp.GlyphType.SQUARE_BULLET) {
-          prefix += "* ";
-        } else {
-          // Ordered list (<ol>):
-          var key = listItem.getListId() + '.' + listItem.getNestingLevel();
-          var counter = listCounters[key] || 0;
-          counter++;
-          listCounters[key] = counter;
-          prefix += counter+". ";
-        }
+        value = '`' + result.substring(offset, lastOffset) + '`';
       }
+      if (text.isItalic(offset)) {
+        value = '*' + value + '*';
+      }
+      if (text.isBold(offset)) {
+        value = "**" + value + "**";
+      }
+      if (text.isUnderline(offset)) {
+        value = "__" + value + "__";
+      }
+      result = result.substring(0, offset) + value + result.substring(lastOffset);
+      lastOffset = offset;
     }
-    return prefix;
+    return result;
   }
 
-  private processTextElement(inSrc: boolean, txt): string {
-    if (typeof(txt) === 'string') {
-      return txt;
-    }
+  private processTable(table: GoogleAppsScript.Document.Table): string {
+    if (table.getNumRows() < 1) return '';
+    const rows = table.getNumRows();
+    const tableHeader = this.processTableFirstRow(table.getRow(0));
+    const tableBody = [...Array(rows - 1)]
+      .map((_, index) => this.processTableRow(table.getRow(index + 1)))
+      .join('');
+    return '\n' + tableHeader + tableBody + '\n';
+  }
 
-    var pOut = txt.getText();
-    if (! txt.getTextAttributeIndices) {
-      return pOut;
-    }
+  private processTableFirstRow(row: GoogleAppsScript.Document.TableRow): string {
+    const cells = row.getNumCells();
+    const underline = [...Array(cells)]
+      .map(() => '---')
+      .join(' | ');
+    return this.processTableRow(row)
+      + "| " + underline + " |\n";
+  }
 
-    var attrs=txt.getTextAttributeIndices();
-    var lastOff=pOut.length;
-
-    for (var i=attrs.length-1; i>=0; i--) {
-      var off=attrs[i];
-      var url=txt.getLinkUrl(off);
-      var font=txt.getFontFamily(off);
-      if (url) {  // start of link
-        if (i>=1 && attrs[i-1]==off-1 && txt.getLinkUrl(attrs[i-1])===url) {
-          // detect links that are in multiple pieces because of errors on formatting:
-          i-=1;
-          off=attrs[i];
-          url=txt.getLinkUrl(off);
-        }
-        pOut=pOut.substring(0, off)+'['+pOut.substring(off, lastOff)+']('+url+')'+pOut.substring(lastOff);
-      } else if (font) {
-        if (!inSrc && font===font.COURIER_NEW) {
-          while (i>=1 && txt.getFontFamily(attrs[i-1]) && txt.getFontFamily(attrs[i-1])===font.COURIER_NEW) {
-            // detect fonts that are in multiple pieces because of errors on formatting:
-            i-=1;
-            off=attrs[i];
-          }
-          pOut=pOut.substring(0, off)+'`'+pOut.substring(off, lastOff)+'`'+pOut.substring(lastOff);
-        }
-      }
-      if (txt.isBold(off)) {
-        var d1 = "**";
-        var d2 = "**";
-        if (txt.isItalic(off)) {
-          // edbacher: changed this to handle bold italic properly.
-          d1 = "**_";
-          d2 = "_**";
-        }
-        pOut=pOut.substring(0, off)+d1+pOut.substring(off, lastOff)+d2+pOut.substring(lastOff);
-      } else if (txt.isItalic(off)) {
-        pOut=pOut.substring(0, off)+'*'+pOut.substring(off, lastOff)+'*'+pOut.substring(lastOff);
-      }
-      lastOff=off;
-    }
-    return pOut;
+  private processTableRow(row: GoogleAppsScript.Document.TableRow): string {
+    const cells = row.getNumCells();
+    const processed = [...Array(cells)]
+      .map((_, index) => this.processCompositeElement(row.getCell(index)))
+      .join(' | ');
+    return '| ' + processed + ' |\n';
   }
 }

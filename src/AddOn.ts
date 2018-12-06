@@ -1,4 +1,4 @@
-import { DocConverter } from './DocConverter';
+import { Doc2MdConverter } from './Doc2MdConverter';
 
 function onOpen() {
   DocumentApp.getUi().createAddonMenu()
@@ -17,6 +17,7 @@ function convertDoc2MdInSidebar() {
 }
 
 function loadMarkdown() {
-  return new DocConverter()
-    .convertToMarkdown(DocumentApp.getActiveDocument());
+  const document = DocumentApp.getActiveDocument();
+  return new Doc2MdConverter()
+    .convertToMarkdown(document);
 }

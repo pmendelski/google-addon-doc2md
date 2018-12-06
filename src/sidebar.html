@@ -43,15 +43,15 @@
         $('#run-conversion').click(runConversion);
         runConversion();
       });
-      
+
       function runConversion() {
         this.disabled = true;
         $('#error').remove();
         $('#markdown-text').val('Converting to Markdown...');
         google.script.run
             .withSuccessHandler(
-              function(markdown, element) {
-                $('#markdown-text').val(markdown.content);
+              function(result, element) {
+                $('#markdown-text').val(result.markdown);
                 element.disabled = false;
               })
             .withFailureHandler(
