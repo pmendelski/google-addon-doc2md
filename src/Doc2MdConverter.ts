@@ -1,64 +1,40 @@
 export interface DocConversionResult {
   title: string;
-  content: string;
+  markdown: string;
 }
 
 export class DocConverter {
   public convertToMarkdown(document: GoogleAppsScript.Document.Document): DocConversionResult {
-    const numChildren = document.getBody().getNumChildren();
-    var text = "";
-    var inSrc = false;
-    var inClass = false;
-    var globalListCounters: { [name: string] : number } = {};
-    var srcIndent = "";
+    const listCounters: { [name: string] : number } = {};
+    let result = "";
 
-    // Walk through all the child elements of the doc.
-    for (var i = 0; i < numChildren; i++) {
-      var child = document.getBody().getChild(i);
-      var result = this.processParagraph(i, paragraph, inSrc, globalListCounters);
-      if (result!==null) {
-        if (result.sourcePretty==="start" && !inSrc) {
-          inSrc=true;
-          text+="<pre class=\"prettyprint\">\n";
-        } else if (result.sourcePretty==="end" && inSrc) {
-          inSrc=false;
-          text+="</pre>\n\n";
-        } else if (result.source==="start" && !inSrc) {
-          inSrc=true;
-          text+="<pre>\n";
-        } else if (result.source==="end" && inSrc) {
-          inSrc=false;
-          text+="</pre>\n\n";
-        } else if (result.inClass==="start" && !inClass) {
-          inClass=true;
-          text+="<div class=\""+result.className+"\">\n";
-        } else if (result.inClass==="end" && inClass) {
-          inClass=false;
-          text+="</div>\n\n";
-        } else if (inClass) {
-          text+=result.text+"\n\n";
-        } else if (inSrc) {
-          text+= (srcIndent + this.escapeHTML(result.text) + "\n");
-        } else if (result.text && result.text.length>0) {
-          text+=result.text+"\n\n";
-        }
-      } else if (inSrc) { // support empty lines inside source code
-        text+='\n';
+    for (let i = 0; i < document.getBody().getNumChildren(); i++) {
+      const child: GoogleAppsScript.Document.Element = document.getBody().getChild(i);
+      const childMarkdown: string = this.processElement(child, listCounters);
+      if (childMarkdown !== null && childMarkdown.length > 0) {
+        result += childMarkdown + "\n\n";
       }
-
     }
     return {
       title: document.getName(),
-      content: text
+      markdown: result
     };
   }
 
-  private escapeHTML(text: string): string {
-    return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  private processElement(element: GoogleAppsScript.Document.Element, listCounters: { [name: string] : number } ): string {
+    const type: GoogleAppsScript.Document.ElementType = element.getType();
+    if (type == DocumentApp.ElementType.TABLE_OF_CONTENTS) {
+      element.asTableOfContents()
+    }
   }
 
-  // Process each child element (not just paragraphs).
-  private processParagraph(index: number, element: GoogleAppsScript.Document.Paragraph, inSrc: boolean, listCounters: { [name: string] : number } ) {
+  private processTableOfContents(element: GoogleAppsScript.Document.TableOfContents): string {
+    return {
+      text: "[[MD_TOC]]"
+    };
+  }
+
+  private processElement2(element: GoogleAppsScript.Document.Element, listCounters: { [name: string] : number } ): string {
     // First, check for things that require no processing.
     if (element.getNumChildren()==0) {
       return null;

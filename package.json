@@ -2,20 +2,15 @@
   "name": "doc2md",
   "version": "1.0.0",
   "description": "Google Doc Add-on that converts Doc content to Markdown",
-  "main": "Code.js",
+  "main": "src/AddOn.ts",
   "private": true,
   "dependencies": {
     "@types/google-apps-script": "0.0.31",
     "typescript": "^3.1.6"
   },
-  "devDependencies": {
-    "copyfiles": "^2.1.0"
-  },
   "scripts": {
-    "assets": "copyfiles src/**/*.json src/**/*.html dist",
-    "compile": "tsc",
-    "build": "npm run compile && npm run assets",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsc",
+    "watch": "clasp push --watch"
   },
   "author": ""
 }
