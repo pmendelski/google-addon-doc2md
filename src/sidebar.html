@@ -7,6 +7,14 @@
       .width-100 {
         width: 100%;
       }
+      .monospace {
+        font-family: "SFMono-Regular",
+          Consolas,
+          "Liberation Mono",
+          Menlo,
+          Courier,
+          monospace;
+      }
     </style>
   </head>
   <body>
@@ -14,7 +22,7 @@
       <form>
         <div class="block form-group">
           <label for="translated-text"><b>Markdown</b></label>
-          <textarea class="width-100" id="markdown-text" rows="45"></textarea>
+          <textarea class="width-100 monospace" id="markdown-text" rows="45"></textarea>
         </div>
         <div class="block" id="button-bar">
           <button class="blue" id="run-conversion">Convert</button>

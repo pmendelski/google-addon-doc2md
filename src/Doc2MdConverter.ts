@@ -1,5 +1,4 @@
 export interface ConversionResult {
-  title: string;
   markdown: string;
   warnings: Warning[];
 }
@@ -14,14 +13,20 @@ class ListCounters {
 
   public incrementCounter(key: string): ListCounters {
     const copy: { [name: string] : number } = Object.keys(this.counters)
-      .reduce((acc: { [name: string] : number }, i: string) => acc[i] = this.counters[i], {});
+      .reduce((acc: { [name: string] : number }, i: string) => {
+        acc[i] = this.counters[i];
+        return acc;
+      }, {});
     copy[key] = copy[key] ? copy[key] + 1 : 1;
     return new ListCounters(copy);
   }
 
   public merge(other: ListCounters): ListCounters {
-    const copy: { [name: string] : number } = Object.keys(this.counters)
-      .reduce((acc: { [name: string] : number }, i: string) => acc[i] = this.counters[i], {});
+    const copy: { [name: string] : number } = {};
+    Object.keys(this.counters)
+      .forEach((key: string) => {
+        copy[key] = this.counters[key];
+      });
     Object.keys(other.counters)
       .forEach((key: string) => {
         const max = copy[key] && copy[key] > other.counters[key] ? copy[key] : other.counters[key];
@@ -113,22 +118,34 @@ export class Doc2MdConverter {
     DocumentApp.ElementType.UNSUPPORTED
   ];
 
-  public convertToMarkdown(document: GoogleAppsScript.Document.Document): ConversionResult {
+  public convertDocumentToMarkdown(document: GoogleAppsScript.Document.Document): ConversionResult {
     const result = this.processCompositeElement(document.getBody(), new Context());
     return {
-      title: document.getName(),
       markdown: result.markdown,
       warnings: result.warnings
     };
   }
 
+  public convertElementsToMarkdown(elements: GoogleAppsScript.Document.Element[]): ConversionResult {
+    let result = ProcessingResult.empty();
+    for (let i = 0; i < elements.length; ++i) {
+      const element: GoogleAppsScript.Document.Element = elements[i];
+      const childResult: ProcessingResult = (element as any).getChild
+        ? this.processCompositeElement(element as any as CompositeElement, result.toContext())
+        : this.processElement(element, result.toContext());
+      if (!childResult.isEmpty()) {
+        result = result.mergeWithNewLine(childResult);
+      }
+    }
+    return result;
+  }
+
   private processCompositeElement(element: CompositeElement, initialContext: Context): ProcessingResult {
     if (this.omittedElementTypes.indexOf(element.getType()) >= 0) return ProcessingResult.empty();
     let result = ProcessingResult.empty();
-    let context = initialContext;
     for (let i = 0; i < element.getNumChildren(); ++i) {
       const child: GoogleAppsScript.Document.Element = element.getChild(i);
-      const childResult: ProcessingResult = this.processElement(child, context);
+      const childResult: ProcessingResult = this.processElement(child, result.toContext());
       if (!childResult.isEmpty()) {
         result = result.mergeWithNewLine(childResult);
       }
@@ -182,14 +199,14 @@ export class Doc2MdConverter {
 
   private processParagraphHeading(heading: GoogleAppsScript.Document.ParagraphHeading): ProcessingResult {
     switch (heading) {
-      case DocumentApp.ParagraphHeading.HEADING6: return new ProcessingResult("###### ");
-      case DocumentApp.ParagraphHeading.HEADING5: return new ProcessingResult("##### ");
-      case DocumentApp.ParagraphHeading.HEADING4: return new ProcessingResult("#### ");
-      case DocumentApp.ParagraphHeading.HEADING3: return new ProcessingResult("### ");
-      case DocumentApp.ParagraphHeading.HEADING2: return new ProcessingResult("## ");
-      case DocumentApp.ParagraphHeading.HEADING1: return new ProcessingResult("# ");
-      case DocumentApp.ParagraphHeading.SUBTITLE: return new ProcessingResult("## ");
-      case DocumentApp.ParagraphHeading.TITLE: return new ProcessingResult("# ");
+      case DocumentApp.ParagraphHeading.HEADING6: return new ProcessingResult("\n###### ");
+      case DocumentApp.ParagraphHeading.HEADING5: return new ProcessingResult("\n##### ");
+      case DocumentApp.ParagraphHeading.HEADING4: return new ProcessingResult("\n#### ");
+      case DocumentApp.ParagraphHeading.HEADING3: return new ProcessingResult("\n### ");
+      case DocumentApp.ParagraphHeading.HEADING2: return new ProcessingResult("\n## ");
+      case DocumentApp.ParagraphHeading.HEADING1: return new ProcessingResult("\n# ");
+      case DocumentApp.ParagraphHeading.SUBTITLE: return new ProcessingResult("\n## ");
+      case DocumentApp.ParagraphHeading.TITLE: return new ProcessingResult("\n# ");
       default: return ProcessingResult.empty();
     }
   }
@@ -245,7 +262,7 @@ export class Doc2MdConverter {
       if (text.isBold(offset)) {
         value = "**" + value + "**";
       }
-      if (text.isUnderline(offset)) {
+      if (!url && text.isUnderline(offset)) {
         value = "__" + value + "__";
       }
       result = result.substring(0, offset) + value + result.substring(lastOffset);
@@ -277,8 +294,10 @@ export class Doc2MdConverter {
     let result = ProcessingResult.fromContext(initialContext);
     for (let i = 0; i < row.getNumCells(); ++i) {
       const cellResult = this.processCompositeElement(row.getCell(i), result.toContext());
-      result = result.mergeMarkdown('| ').merge(cellResult);
+      result = result
+        .merge(cellResult)
+        .mergeMarkdown(' | ');
     }
-    return result;
+    return new ProcessingResult('| ').merge(result);
   }
 }
