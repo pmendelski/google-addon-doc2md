@@ -1,7 +1,13 @@
 # Doc2Md
 
-Google Docs Add-On that converts Doc content to Markdown.
+Google Docs Add-On that converts a document content to Markdown.
 
-## Links
+## Features
 
-- [Document for testing](https://docs.google.com/document/d/1oFziXhkyJDpOpyCk-hRnFv-BtUNa4c8tuiSMWVNP6Rs)
+- Converts documents content to Markdown
+- Converts selected fragment to Markdown
+- Lists all warnings
+
+## Screenshots
+
+![Screenshot](assets/screenshot.png?raw=true "Screenshot")
