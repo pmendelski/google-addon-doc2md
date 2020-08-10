@@ -1,6 +1,6 @@
 # Doc2Md
 
-Google Docs Add-On that converts a document content to Markdown.
+[Google Docs Add-On](https://gsuite.google.com/marketplace/app/doc2md/856149802332) that converts a document content to Markdown.
 
 ## Features
 
