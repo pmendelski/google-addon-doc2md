@@ -5,8 +5,8 @@
   "main": "src/AddOn.ts",
   "private": true,
   "dependencies": {
-    "@types/google-apps-script": "0.0.31",
-    "typescript": "^3.1.6"
+    "@types/google-apps-script": "1.0.14",
+    "typescript": "^3.9.7"
   },
   "scripts": {
     "test": "tsc",
