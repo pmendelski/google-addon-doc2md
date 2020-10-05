@@ -26,6 +26,7 @@
         </div>
         <div class="block" id="button-bar">
           <button class="blue" id="run-conversion">Convert</button>
+          <button id="show-help">Help</button>
         </div>
         <div class="block" id="details">
         </div>
@@ -36,6 +37,7 @@
     <script>
       $(function() {
         $('#run-conversion').click(runConversion);
+        $('#show-help').click(showHelp);
         runConversion();
       });
 
@@ -70,6 +72,12 @@
         var items = warnings.map(warning => `<li><span class="line">Line: ${warning.line}</span> ${warning.message}</li>`).join('')
         var div = $('<div id="warnings" class="warnings"><div class="error">Warnings: ' + warnings.length + '</div><ul>' + items + '</ul></div>');
         $('#details').append(div);
+      }
+
+      function showHelp() {
+        google.script.run
+            .withUserObject(this)
+            .showHelp();
       }
     </script>
   </body>

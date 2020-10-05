@@ -2,8 +2,7 @@ import { Doc2MdConverter } from './Doc2MdConverter';
 
 function onOpen() {
   DocumentApp.getUi().createAddonMenu()
-    .addItem('Convert', 'convertDoc2MdInSidebar')
-    .addItem('Help', 'showHelp')
+    .addItem('Open Doc2Md', 'openDoc2MdInSidebar')
     .addToUi();
 }
 
@@ -11,9 +10,9 @@ function onInstall() {
   onOpen();
 }
 
-function convertDoc2MdInSidebar() {
+function openDoc2MdInSidebar() {
   const ui = HtmlService.createHtmlOutputFromFile('sidebar')
-    .setTitle('Markdown - Doc2Md');
+    .setTitle('Doc2Md');
   DocumentApp.getUi().showSidebar(ui);
 }
 
@@ -37,6 +36,6 @@ function loadMarkdown() {
 function getSelectedElements() {
   var selection = DocumentApp.getActiveDocument().getSelection();
   return selection
-    ? selection.getSelectedElements().map(rangeElement => rangeElement.getElement())
+    ? selection.getRangeElements().map(rangeElement => rangeElement.getElement())
     : [];
 }
