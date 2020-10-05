@@ -50,7 +50,7 @@ class Context {
   public addFootnote(footnote: string) {
     const index = this.footnotes.length + 1;
     this.footnotes.push("[^" + index + "]: " + footnote);
-    this.addMarkdown("[" + index + "]");
+    this.addMarkdown("[^" + index + "] ");
   }
 
   public getNextFootnoteIndex(): number {
@@ -221,17 +221,19 @@ export class Doc2MdConverter {
         }
         value = '`' + result.substring(offset, lastOffset) + '`';
       }
-      if (text.isItalic(offset)) {
-        value = '*' + value + '*';
-      }
-      if (text.isBold(offset)) {
-        value = "**" + value + "**";
-      }
-      if (text.isStrikethrough(offset)) {
-        value = "~~" + value + "~~";
-      }
-      if (!url && text.isUnderline(offset)) {
-        value = "__" + value + "__";
+      if (value.trim().length > 0) {
+        if (text.isItalic(offset)) {
+          value = '*' + value + '*';
+        }
+        if (text.isBold(offset)) {
+          value = "**" + value + "**";
+        }
+        if (text.isStrikethrough(offset)) {
+          value = "~~" + value + "~~";
+        }
+        if (!url && text.isUnderline(offset)) {
+          value = "__" + value + "__";
+        }
       }
       result = result.substring(0, offset) + value + result.substring(lastOffset);
       lastOffset = offset;
